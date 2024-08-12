@@ -14,7 +14,7 @@ app.use(cors());
 // Set up Socket.IO with CORS configuration
 const io = socketIo(server, {
     cors: {
-        origin: "https://sundarsharma332.github.io", // Allow any origin (adjust this if you need to restrict)
+        origin: "https://sundarsharma332.github.io/", // Allow any origin (adjust this if you need to restrict)
         methods: ["GET", "POST"],
         allowedHeaders: ["Content-Type"],
         credentials: true
