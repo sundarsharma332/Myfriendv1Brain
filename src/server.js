@@ -1,12 +1,15 @@
 require('dotenv').config(); // Import and configure dotenv
 const express = require('express');
 const cors = require('cors'); // Import the cors package
-const { determineService } = require('./services/brain'); // Import the determineService function
+const { determineService } = require('../services/brain'); // Import the determineService function
 
 const app = express();
 
 // Enable CORS for all routes
-app.use(cors());
+app.use(cors({
+    origin: '*',
+    credentials: true,
+}));
 
 // Enable JSON body parsing
 app.use(express.json());
