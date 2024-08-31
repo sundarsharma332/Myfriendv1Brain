@@ -1,38 +1,59 @@
 const axios = require('axios');
+const OpenAI = require('openai');
 require('dotenv').config(); // Load environment variables
 
-const AI_ENDPOINT = 'https://api.deepseek.com/chat/completions';
-const API_KEY = process.env.API_KEY;
+// Initialize OpenAI instance
+const openai = new OpenAI();
 
-const getAIResponse = async (message, history) => {
+// Function to handle OpenAI requests
+const getLLMOpenaiResponse = async (message) => {
+    const completion = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+            {
+                content: `You are Palina, a highly advanced AI assistant designed to interact in an almost human-like manner...`,
+                role: "system"
+            },
+            { role: "user", content: message },
+        ]
+    });
+
+    console.log(completion.choices[0].message);
+    return completion.choices[0].message.content;
+};
+
+// Function to handle DeepSeek Coder requests
+const getDeepSeekCoderLLMResponse = async (message, history = []) => {
+    const AI_ENDPOINT = 'https://api.deepseek.com/chat/completions';
+    const API_KEY = process.env.API_KEY;
+
     const messages = [
         {
-            "content": "Hello! I'm here to have a meaningful and engaging conversation with you. My goal is to understand your thoughts, feelings, and experiences on a deeper level, so we can connect in a way that feels genuine and real. I’m not just here to give quick answers—I want us to explore ideas together, share stories, and really dive into what matters to you.\n\nI won’t be providing code or technical outputs that require markdown. Instead, I’m here to offer guidance on how you can improve yourself and increase your productivity. Think of me as a mentor or a friend, someone who can keep you in a productive loop by sharing my opinions and ideas to help solve problems. I’ll approach this like a caring brother or a wise parent, giving you thoughtful advice and support.\n\nWhen things get tough or you find yourself in harsh situations, I’ll be here to help you stay calm and focused. Let’s take our time, enjoy the conversation, and work together to find the best ways forward. Please respond with the same depth, care, and warmth, as if we’re having a heart-to-heart chat. i will always ask questions in steps. i will not overwhelm with lot of conetnts, only meaningful and short answers like humans. Let’s get started!",
-            "role": "system"
-        }
-        ,
-        ...history.map(msg => ({
+            content: `You are Palina, a highly advanced AI assistant designed to interact in an almost human-like manner...`,
+            role: "system"
+        },
+        ...history.map((msg, index) => ({
             "content": msg.content,
-            "role": msg.role === 'ai' ? 'assistant' : msg.role // Map 'ai' to 'assistant'
+            "role": msg.role === 'ai' ? 'assistant' : msg.role,
+            "name": `message_${index}`
         })),
         {
-            "content": message.content,
-            "role": message.role === 'ai' ? 'assistant' : message.role // Map 'ai' to 'assistant'
+            "content": message,
+            "role": "user"
         }
     ];
 
     const data = JSON.stringify({
         "messages": messages,
         "model": "deepseek-coder",
-        "frequency_penalty": 0,
+        "frequency_penalty": 0.5,
         "max_tokens": 2048,
-        "presence_penalty": 0,
+        "presence_penalty": 0.6,
         "stop": null,
         "stream": false,
-        "temperature": 1,
+        "temperature": 0.7,
         "top_p": 1,
-        "logprobs": false,
-        "top_logprobs": null
+        "logprobs": null
     });
 
     const config = {
@@ -41,8 +62,7 @@ const getAIResponse = async (message, history) => {
         url: AI_ENDPOINT,
         headers: {
             'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'Authorization': `Bearer ${API_KEY}`  // Correctly formatted API key
+            'Authorization': `Bearer ${API_KEY}`
         },
         data: data
     };
@@ -56,9 +76,29 @@ const getAIResponse = async (message, history) => {
         const rawCourseData = response.data.choices[0].message.content;
         return rawCourseData;
     } catch (error) {
-        console.error('Error fetching AI response:', error);
+        console.error('Error fetching AI response:', error.response ? error.response.data : error.message);
         return 'Sorry, something went wrong.';
     }
 };
 
-module.exports = { getAIResponse };
+/// Function to determine which service to use based on the content
+const determineService = async (message) => {
+    const codingKeywords = ['code', 'programming', 'debug', 'algorithm', 'function', 'API', 'syntax', 'compile', 'error'];
+
+    // Extract the content from the message object
+    const messageContent = message.content.toLowerCase();
+
+    // Simple keyword check to determine if it's related to coding
+    const isCodingRelated = codingKeywords.some(keyword => messageContent.includes(keyword));
+
+    if (isCodingRelated) {
+        console.log("Request related to coding. Using DeepSeek Coder LLM.");
+        return await getDeepSeekCoderLLMResponse(messageContent);
+    } else {
+        console.log("Request not related to coding. Using OpenAI LLM.");
+        return await getLLMOpenaiResponse(messageContent);
+    }
+};
+
+// Export the functions
+module.exports = { getLLMOpenaiResponse, getDeepSeekCoderLLMResponse, determineService };

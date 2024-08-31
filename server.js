@@ -1,7 +1,7 @@
 require('dotenv').config(); // Import and configure dotenv
 const express = require('express');
 const cors = require('cors'); // Import the cors package
-const { getAIResponse } = require('./services/brain');
+const { determineService } = require('./services/brain'); // Import the determineService function
 
 const app = express();
 
@@ -24,7 +24,8 @@ app.post('/api/message', async (req, res) => {
 
     // Process the message with AI
     try {
-        const aiResponse = await getAIResponse(message, history);
+        // Use determineService to decide which AI service to use
+        const aiResponse = await determineService(message, history);
         console.log('AI response:', aiResponse);
         res.json({ response: aiResponse });
     } catch (error) {
