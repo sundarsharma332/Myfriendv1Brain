@@ -15,7 +15,7 @@ app.use(cors({
 app.use(express.json());
 
 // Define a simple route for the root URL
-app.get('/', (req, res) => {
+app.get('/api/test', (req, res) => {
     res.send('Server is running and API is listening.');
 });
 
